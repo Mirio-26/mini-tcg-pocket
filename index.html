@@ -33,8 +33,9 @@
 
     /* ===== SCREENS ===== */
     .screen {
-      display:none; padding:16px; padding-bottom:80px;
-      height:calc(100% - 56px - 56px); overflow-y:auto;
+      display:none; padding:16px; padding-bottom:160px; /* bottom padding doubled */
+      height:calc(100% - 112px - 56px); /* header 56px + nav 112px */
+      overflow-y:auto;
     }
     .active { display:block; }
 
@@ -60,25 +61,22 @@
       font-size:.75rem; font-weight:600; color:#fff;
     }
 
-    /* ===== OUVERTURE ===== */
-    /* (inchangé) */
-    /* ... */
+    /* ===== OUVERTURE, CLASSEUR, MODAL, TRADING ===== */
+    /* inchangés */
 
-    /* ===== CLASSEUR ===== */
-    /* (inchangé) */
-    /* ... */
-
-    /* ===== MODAL ===== */
-    /* (inchangé) */
-    /* ... */
-
-    /* ===== NAVBOTTOM ===== */
-    /* (inchangé) */
-    /* ... */
-
-    /* ===== TRADING ===== */
-    /* (inchangé) */
-    /* ... */
+    /* ===== NAVBOTTOM (2× plus grand) ===== */
+    .bottom-nav {
+      position:fixed; bottom:0; left:0; right:0;
+      height:112px; /* doublé */
+      background:rgba(255,255,255,0.1); backdrop-filter:blur(8px);
+      display:flex; justify-content:center; align-items:center; gap:32px; z-index:5;
+    }
+    .nav-btn {
+      font-size:48px; /* doublé */
+      width:56px; height:56px; /* agrandi pour le clic */
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -89,7 +87,7 @@
     <div class="avatar"></div>
   </div>
 
-  <!-- 1) Choix Booster en grille verticale -->
+  <!-- 1) Choix Booster en grille -->
   <div id="screen1" class="screen active">
     <h1>Choisis un booster</h1>
     <div id="setsContainer">Chargement…</div>
