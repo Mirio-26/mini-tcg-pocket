@@ -1,185 +1,211 @@
-// script.js
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini TCG Pocket</title>
 
-// —— CONST et STATE —— //
-const API_BASE = 'https://api.pokemontcg.io/v2';
-let allSets = [],                  // liste des sets
-    currentSetIndex = 0,           // index dans allSets pour le carousel
-    collection = {},               // { setId: { cardId: { card, count } } }
-    wallet = parseFloat(localStorage.getItem('wallet')) || 100;
+  <!-- Désactivation du cache navigateur -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Pragma"       content="no-cache"/>
+  <meta http-equiv="Expires"      content="0"/>
 
-// —— SÉLECTION DES ÉCRANS —— //
-const screens = {
-  home:   document.getElementById('screen1'),
-  open:   document.getElementById('screen2'),
-  col:    document.getElementById('screen3'),
-  trade:  document.getElementById('screen4'),
-};
-const showScreen = name => {
-  Object.values(screens).forEach(s => s.classList.remove('active'));
-  screens[name].classList.add('active');
-};
-
-// —— HEADER / WALLET —— //
-const walletHeader = document.getElementById('walletHeader');
-function updateWallet(delta=0){
-  wallet = Math.max(0, wallet + delta);
-  localStorage.setItem('wallet', wallet.toFixed(2));
-  walletHeader.textContent = wallet.toFixed(2) + ' €';
-}
-updateWallet(0);
-
-// —— NAVIGATION BASSE —— //
-document.getElementById('goHome').onclick   = _ => showScreen('home');
-document.getElementById('goCollection').onclick = _ => { showCollection(); showScreen('col'); };
-document.getElementById('goTrade').onclick  = _ => { renderTrading(); showScreen('trade'); };
-
-// —— FETCH DES SETS —— //
-async function loadSets(){
-  const res = await fetch(`${API_BASE}/sets`);
-  const data = await res.json();
-  allSets = data.data;
-  renderCarousel();
-}
-const setsContainer = document.getElementById('setsContainer');
-function renderCarousel(){
-  setsContainer.innerHTML = '';
-  allSets.forEach((s, i) => {
-    const btn = document.createElement('div');
-    btn.className = 'set-btn';
-    btn.style.backgroundImage = `url(${s.images.logo})`;
-    const price = document.createElement('div');
-    price.className = 'set-price';
-    price.textContent = '5 €';
-    btn.appendChild(price);
-    btn.onclick = _ => openBooster(i);
-    setsContainer.appendChild(btn);
-  });
-}
-document.getElementById('prevBtn').onclick = _ => setsContainer.scrollBy({left:-200, behavior:'smooth'});
-document.getElementById('nextBtn').onclick = _ => setsContainer.scrollBy({left: 200, behavior:'smooth'});
-
-// —— OUVERTURE DE BOOSTER —— //
-const openingArea = document.getElementById('openingArea');
-const currentSetName = document.getElementById('currentSetName');
-async function openBooster(idx){
-  const set = allSets[idx];
-  // déduit le prix
-  if(wallet < 5) { alert("Portefeuille insuffisant"); return; }
-  updateWallet(-5);
-
-  showScreen('open');
-  currentSetName.textContent = set.name;
-  openingArea.innerHTML = '';
-
-  // 5 cartes aléatoires
-  const res = await fetch(`${API_BASE}/cards?q=set.id:${set.id}&pageSize=100`);
-  const cards = (await res.json()).data;
-  for(let i=0; i<5; i++){
-    const c = cards[Math.floor(Math.random()*cards.length)];
-    const thumb = document.createElement('div');
-    thumb.className = 'card-thumb';
-    thumb.style.backgroundImage = `url(${c.images.small})`;
-    openingArea.appendChild(thumb);
-
-    // ajoute à la collection
-    if(!collection[set.id]) collection[set.id] = {};
-    const entry = collection[set.id][c.id] || { card:c, count:0 };
-    entry.count++;
-    collection[set.id][c.id] = entry;
-  }
-  localStorage.setItem('collection', JSON.stringify(collection));
-}
-
-// —— CLASSEUR —— //
-const prevSetBtn = document.getElementById('prevSet');
-const nextSetBtn = document.getElementById('nextSet');
-const colTitle     = document.getElementById('collectionTitle');
-const colArea      = document.getElementById('collectionArea');
-
-function loadCollection(){
-  collection = JSON.parse(localStorage.getItem('collection')||'{}');
-}
-function showCollection(setIdx = 0){
-  loadCollection();
-  const setIds = Object.keys(collection);
-  if(setIds.length===0){
-    colTitle.textContent = '— Aucun set —';
-    colArea.innerHTML = '';
-    return;
-  }
-  currentSetIndex = Math.max(0,Math.min(setIdx,setIds.length-1));
-  const setId = setIds[currentSetIndex];
-  const set = allSets.find(s=>s.id===setId);
-  colTitle.textContent = set ? set.name : '— Aucun set —';
-
-  // affichage
-  colArea.innerHTML = '';
-  // on prend le nombre max de cartes du set (ex. 75)
-  const total = set.total; 
-  for(let num=1; num<=total; num++){
-    const slot = document.createElement('div');
-    slot.className = 'col-item';
-
-    // placeholder
-    const ph = document.createElement('div');
-    ph.className = 'placeholder';
-    ph.textContent = num.toString().padStart(3,'0');
-    slot.appendChild(ph);
-
-    // si on a cette carte
-    for(let cid in collection[setId]){
-      const e = collection[setId][cid];
-      if(Number(e.card.number)===num){
-        slot.innerHTML = ''; // remplace placeholder
-        const img = document.createElement('img');
-        img.src = e.card.images.small;
-        slot.appendChild(img);
-        const del = document.createElement('div');
-        del.className = 'delete-btn';
-        del.textContent = '✕';
-        del.onclick = _ => {
-          if(confirm('Supprimer cette carte ?')){
-            e.count--;
-            if(e.count<=0) delete collection[setId][cid];
-            localStorage.setItem('collection', JSON.stringify(collection));
-            showCollection(currentSetIndex);
-          }
-        };
-        slot.appendChild(del);
-        const badge = document.createElement('span');
-        badge.textContent = 'x'+e.count;
-        slot.appendChild(badge);
-      }
+  <style>
+    /* ===== GLOBAL ===== */
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg,#3949ab 0%,#7b1fa2 100%);
+      color: #fff; overflow-x: hidden; height:100vh;
     }
-    colArea.appendChild(slot);
-  }
-}
-prevSetBtn.onclick = _ => showCollection(currentSetIndex-1);
-nextSetBtn.onclick = _ => showCollection(currentSetIndex+1);
+    h1 { margin: 0 0 12px; font-weight: 600; font-size: 1.5rem; }
+    button { border: none; background: none; cursor: pointer; }
 
-// —— MODAL AGRANDI —— //
-const cardModal = document.getElementById('cardModal');
-const modalImg  = document.getElementById('modalImg');
-document.body.addEventListener('click', e => {
-  if(e.target.tagName==='IMG' && e.target.parentNode.id==='collectionArea'){
-    modalImg.src = e.target.src.replace('/small/','/large/');
-    cardModal.style.display = 'flex';
-  }
-});
-cardModal.onclick = _ => cardModal.style.display = 'none';
+    /* ===== HEADER ===== */
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+    }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: url('assets/avatar.png') center/cover no-repeat;
+      background-color: rgba(255,255,255,0.2);
+      border: 2px solid #fff;
+    }
+    #walletHeader {
+      font-weight: 600;
+    }
 
-// —— TRADING (stub) —— //
-function renderTrading(){
-  document.getElementById('offers').textContent   = 'Chargement…';
-  document.getElementById('myOffers').textContent = 'Aucune carte à vendre.';
-  // ici tu peux programmer fetch vers ton back-end / générer aléa…
-}
-setInterval(_=>{ if(screens.trade.classList.contains('active')) renderTrading() }, 300000);
+    /* ===== SCREENS ===== */
+    .screen { display: none; padding: 16px; padding-bottom: 80px; height: calc(100% - 56px - 56px); overflow-y:auto; }
+    .active { display: block; }
 
-// —— INITIALISATION —— //
-window.addEventListener('load', async() => {
-  // recup collec
-  loadCollection();
-  // load sets & afficher
-  await loadSets();
-});
+    /* ----- Carrousel Sets ----- */
+    .carousel-container {
+      position: relative; display: flex; align-items: center;
+      margin: 0 auto; max-width: 100%; padding: 16px 0;
+    }
+    #setsContainer {
+      display: flex; gap: 12px; overflow-x: auto;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+      padding: 0 60px;
+    }
+    #setsContainer::-webkit-scrollbar { display: none; }
+    .set-btn {
+      position: relative;
+      flex: none; width: 100px; height: 140px;
+      background: #fff center/contain no-repeat;
+      border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      scroll-snap-align: center; transition: transform .2s;
+    }
+    .set-btn:hover { transform: translateY(-4px) scale(1.05); }
+    .set-price {
+      position: absolute; bottom: 6px; right: 6px;
+      background: rgba(0,0,0,0.6); color: #fff;
+      padding: 2px 6px; border-radius: 6px;
+      font-size: .75rem; font-weight: 600;
+    }
+    .arrow {
+      position: absolute; width: 32px; height: 32px;
+      background: rgba(255,255,255,0.2); color: #fff; font-size: 24px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .2s; user-select: none; z-index: 1;
+    }
+    .arrow:hover { background: rgba(255,255,255,0.4); }
+    .prev { left: 8px; } .next { right: 8px; }
+
+    /* ----- Ouverture ----- */
+    #openingArea {
+      display: flex; gap: 12px; justify-content: center;
+      flex-wrap: wrap; margin-top: 16px;
+    }
+    .card-thumb {
+      width: 80px; height: 112px; border-radius: 8px;
+      background: #fff center/cover no-repeat;
+      transform: perspective(600px) rotateY(90deg);
+      animation: reveal .4s forwards;
+    }
+    @keyframes reveal {
+      to { transform: perspective(600px) rotateY(0deg); }
+    }
+
+    /* ----- Classeur ----- */
+    .set-nav {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .set-nav button {
+      color: #fff; font-size: 1.2rem; cursor: pointer; padding: 4px;
+    }
+    #collectionTitle { font-weight: 600; }
+    #collectionArea {
+      display: grid; grid-template-columns: repeat(auto-fill,minmax(80px,1fr));
+      gap: 12px; margin-top: 8px;
+    }
+    .col-item { position: relative; text-align: center; }
+    .col-item img {
+      width: 100%; aspect-ratio: 100/140; border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform .2s;
+    }
+    .col-item img:hover { transform: scale(1.05); }
+    .col-item span {
+      position: absolute; bottom: -6px; right: 4px;
+      background: #39ff14; color: #1A1F36; padding: 2px 6px;
+      border-radius: 12px; font-size: .75rem; font-weight: 600;
+    }
+    .delete-btn {
+      position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+      background: #ff1744; color: #fff; width: 20px; height: 20px;
+      border-radius: 50%; font-size: 14px; line-height: 20px;
+      cursor: pointer;
+    }
+    .placeholder {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; aspect-ratio: 100/140;
+      border: 2px dashed rgba(255,255,255,0.4); border-radius: 8px;
+      color: rgba(255,255,255,0.4); font-size: .85rem; font-weight: 600;
+    }
+
+    /* ----- Modal ----- */
+    #cardModal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: none;
+      align-items: center; justify-content: center; z-index: 10;
+    }
+    #cardModal img {
+      max-width: 80%; max-height: 80%; border-radius: 12px;
+    }
+
+    /* ----- Navbar Bottom ----- */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 56px;
+      background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+      display: flex; justify-content: center; align-items: center; gap: 32px; z-index: 5;
+    }
+    .nav-btn {
+      font-size: 24px; color: #fff; cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <div class="header">
+    <div style="width:32px"></div>
+    <div>Mini TCG Pocket</div>
+    <div id="walletHeader">100.00 €</div>
+    <div class="avatar"></div>
+  </div>
+
+  <!-- 1) Choix Booster -->
+  <div id="screen1" class="screen active">
+    <h1>Choisis un booster</h1>
+    <div class="carousel-container">
+      <div class="arrow prev" id="prevBtn">❮</div>
+      <div id="setsContainer">Chargement…</div>
+      <div class="arrow next" id="nextBtn">❯</div>
+    </div>
+  </div>
+
+  <!-- 2) Ouverture -->
+  <div id="screen2" class="screen">
+    <h1>Ouverture : <span id="currentSetName"></span></h1>
+    <div id="openingArea"></div>
+  </div>
+
+  <!-- 3) Classeur -->
+  <div id="screen3" class="screen">
+    <h1>Ta collection</h1>
+    <div class="set-nav">
+      <button id="prevSet">❮</button>
+      <span id="collectionTitle">— Aucun set —</span>
+      <button id="nextSet">❯</button>
+    </div>
+    <div id="collectionArea"></div>
+  </div>
+
+  <!-- 4) Trading -->
+  <div id="screen4" class="screen">
+    <h1>Trading</h1>
+    <div class="wallet">Portefeuille : <span id="walletAmount">0.00</span> €</div>
+    <h2>Offres bots</h2>
+    <div id="offers" class="offers">Chargement…</div>
+    <h2>Mes cartes à vendre</h2>
+    <div id="myOffers" class="myOffers">Chargement…</div>
+  </div>
+
+  <!-- Modal Agrandi -->
+  <div id="cardModal">
+    <img id="modalImg" src="" alt="Carte agrandie">
+  </div>
+
+  <!-- Navbar Bottom -->
+  <div class="bottom-nav">
+    <div class="nav-btn" id="goHome">🏠</div>
+    <div class="nav-btn" id="goCollection">📦</div>
+    <div class="nav-btn" id="goTrade">💱</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
