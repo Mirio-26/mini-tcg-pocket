@@ -28,7 +28,7 @@
     main { padding: 1rem; }
     section { display: none; }
 
-    /* ---- Boosters ---- */
+    /* Boosters carousel */
     #sets-container {
       display: flex;
       gap: 1rem;
@@ -52,7 +52,7 @@
       border-radius: .3rem;
     }
 
-    /* ---- Collection ---- */
+    /* Collection grid */
     #collection-container {
       display: grid;
       grid-template-columns: repeat(auto-fill,minmax(80px,1fr));
@@ -61,7 +61,7 @@
     .slot {
       position: relative;
       width: 100%;
-      padding-top: 125%; /* ratio approx carte */
+      padding-top: 125%; /* aspect ratio */
       border: dashed 2px rgba(255,255,255,.3);
       border-radius: .5rem;
       text-align: center;
@@ -81,27 +81,32 @@
       position: absolute;
       top: 2px; right: 2px;
       background: #e33;
-      border: none; color: #fff;
+      border: none;
+      color: #fff;
       border-radius: 50%;
-      width: 20px; height: 20px;
+      width: 20px;
+      height: 20px;
       cursor: pointer;
       font-size: .8rem;
       line-height: 18px;
     }
 
-    /* ---- Navigation footer ---- */
+    /* Footer nav */
     nav {
       position: fixed;
       bottom: 0; left: 50%;
       transform: translateX(-50%);
-      display: flex; gap: 1rem;
+      display: flex;
+      gap: 1rem;
       padding: .5rem;
       background: rgba(0,0,0,.2);
       border-radius: 1rem;
     }
     nav button {
-      background: none; border: none;
-      color: #fff; font-size: 1.5rem;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
       cursor: pointer;
     }
   </style>
@@ -114,7 +119,7 @@
   </header>
 
   <main>
-    <!-- Page Boosters -->
+    <!-- Boosters -->
     <section id="page-boosters">
       <h2>Choisis un booster</h2>
       <button class="nav-arrow" id="prev-set">←</button>
@@ -122,20 +127,19 @@
       <button class="nav-arrow" id="next-set">→</button>
     </section>
 
-    <!-- Page Collection -->
+    <!-- Collection -->
     <section id="page-collection">
       <h2>Ta collection</h2>
       <div id="collection-container"></div>
     </section>
 
-    <!-- Page Trading -->
+    <!-- Trading -->
     <section id="page-trading">
       <h2>Trading</h2>
       <p>Trading à venir…</p>
     </section>
   </main>
 
-  <!-- Barre de nav -->
   <nav>
     <button id="nav-boosters">🏠</button>
     <button id="nav-collection">📒</button>
