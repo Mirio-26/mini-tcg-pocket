@@ -13,10 +13,12 @@
       margin: 0; padding: 0;
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg,#3949ab,#7b1fa2);
-      color: #fff; overflow-x: hidden; height:100vh;
+      color: #fff;
+      overflow-x: hidden;
+      height: 100vh;
     }
     h1 { margin:0 0 12px; font-weight:600; font-size:1.5rem; }
-    button { border:none; background:none; cursor:pointer; }
+    button { border: none; background: none; cursor: pointer; }
 
     /* ===== HEADER ===== */
     .header {
@@ -27,14 +29,17 @@
     .avatar {
       width:32px; height:32px; border-radius:50%;
       background:url('assets/avatar.png') center/cover no-repeat;
-      background-color:rgba(255,255,255,0.2); border:2px solid #fff;
+      background-color:rgba(255,255,255,0.2);
+      border:2px solid #fff;
     }
     #walletHeader { font-weight:600; }
 
     /* ===== SCREENS ===== */
     .screen {
-      display:none; padding:16px; padding-bottom:160px; /* bottom padding doubled */
-      height:calc(100% - 112px - 56px); /* header 56px + nav 112px */
+      display:none;
+      padding:16px;
+      padding-bottom:160px; /* bottom-nav doublée (112px) + marge */
+      height:calc(100% - 56px - 112px);
       overflow-y:auto;
     }
     .active { display:block; }
@@ -42,7 +47,7 @@
     /* ===== GRILLE BOOSTERS ===== */
     #setsContainer {
       display:grid;
-      grid-template-columns: repeat(auto-fill,minmax(100px,1fr));
+      grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
       gap:12px;
       padding:16px;
     }
@@ -53,7 +58,7 @@
       position:relative; transition:transform .2s;
     }
     .set-btn:hover {
-      transform: translateY(-4px) scale(1.05);
+      transform:translateY(-4px) scale(1.05);
     }
     .set-price {
       position:absolute; bottom:6px; right:6px;
@@ -61,25 +66,131 @@
       font-size:.75rem; font-weight:600; color:#fff;
     }
 
-    /* ===== OUVERTURE, CLASSEUR, MODAL, TRADING ===== */
-    /* inchangés */
+    /* ===== OUVERTURE ===== */
+    #openingArea {
+      display:flex; flex-wrap:wrap; gap:12px; justify-content:center;
+      margin-top:16px;
+    }
+    .card-thumb {
+      width:80px; height:112px; border-radius:8px;
+      background:#fff center/cover no-repeat;
+      transform:perspective(600px) rotateY(90deg);
+      animation:reveal .4s forwards;
+    }
+    @keyframes reveal {
+      to { transform:perspective(600px) rotateY(0deg); }
+    }
+
+    /* ===== CLASSEUR ===== */
+    .set-nav {
+      display:flex; align-items:center; justify-content:center; gap:12px;
+      margin-bottom:12px;
+    }
+    .set-nav button {
+      font-size:1.2rem; color:#fff; cursor:pointer; padding:4px;
+    }
+    #collectionTitle { font-weight:600; }
+    #collectionArea {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(80px,1fr));
+      gap:12px;
+    }
+    .col-item { position:relative; text-align:center; }
+    .col-item img {
+      width:100%; aspect-ratio:100/140; border-radius:8px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.3); transition:transform .2s;
+    }
+    .col-item img:hover { transform:scale(1.05); }
+    .col-item span {
+      position:absolute; bottom:-6px; right:4px;
+      background:#39ff14; color:#1A1F36; padding:2px 6px;
+      border-radius:12px; font-size:.75rem; font-weight:600;
+    }
+    .delete-btn {
+      position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+      width:20px; height:20px; background:#ff1744; color:#fff;
+      border-radius:50%; font-size:14px; line-height:20px;
+      cursor:pointer;
+    }
+    .placeholder {
+      display:flex; align-items:center; justify-content:center;
+      width:100%; aspect-ratio:100/140;
+      border:2px dashed rgba(255,255,255,0.4); border-radius:8px;
+      color:rgba(255,255,255,0.4); font-size:.85rem; font-weight:600;
+    }
+
+    /* ===== MODAL ===== */
+    #cardModal {
+      position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.8); display:none;
+      align-items:center; justify-content:center; z-index:10;
+    }
+    #cardModal img {
+      max-width:80%; max-height:80%; border-radius:12px;
+    }
 
     /* ===== NAVBOTTOM (2× plus grand) ===== */
     .bottom-nav {
       position:fixed; bottom:0; left:0; right:0;
       height:112px; /* doublé */
       background:rgba(255,255,255,0.1); backdrop-filter:blur(8px);
-      display:flex; justify-content:center; align-items:center; gap:32px; z-index:5;
+      display:flex; justify-content:center; align-items:center; gap:32px;
+      z-index:5;
     }
     .nav-btn {
       font-size:48px; /* doublé */
-      width:56px; height:56px; /* agrandi pour le clic */
+      width:56px; height:56px; /* zone de clic agrandie */
       display:flex; align-items:center; justify-content:center;
       cursor:pointer;
+    }
+
+    /* ===== TRADING ===== */
+    .wallet {
+      font-size:1.3rem; font-weight:600; margin-bottom:16px;
+    }
+    .section-title {
+      margin:24px 0 12px; font-weight:600; font-size:1.2rem;
+      border-bottom:1px solid rgba(255,255,255,0.3); padding-bottom:4px;
+    }
+    .offers, .myOffers {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(100px,1fr));
+      gap:16px; margin-top:8px;
+    }
+    .trade-card {
+      background:rgba(255,255,255,0.1); border-radius:12px; padding:8px;
+      text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.3);
+      transition:transform .2s, background .2s;
+    }
+    .trade-card:hover {
+      transform:translateY(-4px); background:rgba(255,255,255,0.15);
+    }
+    .trade-card img {
+      width:100%; height:140px; object-fit:cover; border-radius:8px;
+      margin-bottom:6px;
+    }
+    .trade-card .price {
+      font-size:.95rem; font-weight:600; margin-bottom:6px; color:#fff;
+      text-shadow:0 1px 2px rgba(0,0,0,0.5);
+    }
+    .trade-card button {
+      padding:6px 8px; border-radius:6px; background:#39ff14;
+      color:#1A1F36; border:none; font-weight:600; cursor:pointer;
+      transition:background .2s;
+    }
+    .trade-card button:hover:not(:disabled) {
+      background:#2ecc11;
+    }
+    .trade-card button:disabled {
+      background:rgba(255,255,255,0.3); cursor:not-allowed;
+    }
+    #screen4 .myOffers:empty {
+      color:rgba(255,255,255,0.7); text-align:center; padding:16px;
     }
   </style>
 </head>
 <body>
+
   <div class="header">
     <div style="width:32px"></div>
     <div>Mini TCG Pocket</div>
