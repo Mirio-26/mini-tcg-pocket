@@ -1,151 +1,185 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <base href="./">
+// script.js
 
-  <title>Mini TCG Pocket</title>
-  <link rel="icon" href="assets/card_back.png" />
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: linear-gradient(135deg,#4c2b7f,#a34bea);
-      color: #fff;
-      overflow-x: hidden;
-    }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: .5rem 1rem;
-      background: #673ab7;
-    }
-    header h1 { margin: 0; font-size: 1.2rem; }
-    #balance { font-weight: bold; }
+// —— CONST et STATE —— //
+const API_BASE = 'https://api.pokemontcg.io/v2';
+let allSets = [],                  // liste des sets
+    currentSetIndex = 0,           // index dans allSets pour le carousel
+    collection = {},               // { setId: { cardId: { card, count } } }
+    wallet = parseFloat(localStorage.getItem('wallet')) || 100;
 
-    main { padding: 1rem; }
-    section { display: none; }
+// —— SÉLECTION DES ÉCRANS —— //
+const screens = {
+  home:   document.getElementById('screen1'),
+  open:   document.getElementById('screen2'),
+  col:    document.getElementById('screen3'),
+  trade:  document.getElementById('screen4'),
+};
+const showScreen = name => {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+};
 
-    /* Boosters carousel */
-    #sets-container {
-      display: flex;
-      gap: 1rem;
-      overflow-x: auto;
-      padding: .5rem 0;
-    }
-    #sets-container img {
-      cursor: pointer;
-      border-radius: .5rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,.3);
-      flex-shrink: 0;
-      height: 100px;
-    }
-    .nav-arrow {
-      background: rgba(0,0,0,.3);
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
-      padding: .5rem;
-      cursor: pointer;
-      border-radius: .3rem;
-    }
+// —— HEADER / WALLET —— //
+const walletHeader = document.getElementById('walletHeader');
+function updateWallet(delta=0){
+  wallet = Math.max(0, wallet + delta);
+  localStorage.setItem('wallet', wallet.toFixed(2));
+  walletHeader.textContent = wallet.toFixed(2) + ' €';
+}
+updateWallet(0);
 
-    /* Collection grid */
-    #collection-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill,minmax(80px,1fr));
-      gap: .75rem;
+// —— NAVIGATION BASSE —— //
+document.getElementById('goHome').onclick   = _ => showScreen('home');
+document.getElementById('goCollection').onclick = _ => { showCollection(); showScreen('col'); };
+document.getElementById('goTrade').onclick  = _ => { renderTrading(); showScreen('trade'); };
+
+// —— FETCH DES SETS —— //
+async function loadSets(){
+  const res = await fetch(`${API_BASE}/sets`);
+  const data = await res.json();
+  allSets = data.data;
+  renderCarousel();
+}
+const setsContainer = document.getElementById('setsContainer');
+function renderCarousel(){
+  setsContainer.innerHTML = '';
+  allSets.forEach((s, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'set-btn';
+    btn.style.backgroundImage = `url(${s.images.logo})`;
+    const price = document.createElement('div');
+    price.className = 'set-price';
+    price.textContent = '5 €';
+    btn.appendChild(price);
+    btn.onclick = _ => openBooster(i);
+    setsContainer.appendChild(btn);
+  });
+}
+document.getElementById('prevBtn').onclick = _ => setsContainer.scrollBy({left:-200, behavior:'smooth'});
+document.getElementById('nextBtn').onclick = _ => setsContainer.scrollBy({left: 200, behavior:'smooth'});
+
+// —— OUVERTURE DE BOOSTER —— //
+const openingArea = document.getElementById('openingArea');
+const currentSetName = document.getElementById('currentSetName');
+async function openBooster(idx){
+  const set = allSets[idx];
+  // déduit le prix
+  if(wallet < 5) { alert("Portefeuille insuffisant"); return; }
+  updateWallet(-5);
+
+  showScreen('open');
+  currentSetName.textContent = set.name;
+  openingArea.innerHTML = '';
+
+  // 5 cartes aléatoires
+  const res = await fetch(`${API_BASE}/cards?q=set.id:${set.id}&pageSize=100`);
+  const cards = (await res.json()).data;
+  for(let i=0; i<5; i++){
+    const c = cards[Math.floor(Math.random()*cards.length)];
+    const thumb = document.createElement('div');
+    thumb.className = 'card-thumb';
+    thumb.style.backgroundImage = `url(${c.images.small})`;
+    openingArea.appendChild(thumb);
+
+    // ajoute à la collection
+    if(!collection[set.id]) collection[set.id] = {};
+    const entry = collection[set.id][c.id] || { card:c, count:0 };
+    entry.count++;
+    collection[set.id][c.id] = entry;
+  }
+  localStorage.setItem('collection', JSON.stringify(collection));
+}
+
+// —— CLASSEUR —— //
+const prevSetBtn = document.getElementById('prevSet');
+const nextSetBtn = document.getElementById('nextSet');
+const colTitle     = document.getElementById('collectionTitle');
+const colArea      = document.getElementById('collectionArea');
+
+function loadCollection(){
+  collection = JSON.parse(localStorage.getItem('collection')||'{}');
+}
+function showCollection(setIdx = 0){
+  loadCollection();
+  const setIds = Object.keys(collection);
+  if(setIds.length===0){
+    colTitle.textContent = '— Aucun set —';
+    colArea.innerHTML = '';
+    return;
+  }
+  currentSetIndex = Math.max(0,Math.min(setIdx,setIds.length-1));
+  const setId = setIds[currentSetIndex];
+  const set = allSets.find(s=>s.id===setId);
+  colTitle.textContent = set ? set.name : '— Aucun set —';
+
+  // affichage
+  colArea.innerHTML = '';
+  // on prend le nombre max de cartes du set (ex. 75)
+  const total = set.total; 
+  for(let num=1; num<=total; num++){
+    const slot = document.createElement('div');
+    slot.className = 'col-item';
+
+    // placeholder
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    ph.textContent = num.toString().padStart(3,'0');
+    slot.appendChild(ph);
+
+    // si on a cette carte
+    for(let cid in collection[setId]){
+      const e = collection[setId][cid];
+      if(Number(e.card.number)===num){
+        slot.innerHTML = ''; // remplace placeholder
+        const img = document.createElement('img');
+        img.src = e.card.images.small;
+        slot.appendChild(img);
+        const del = document.createElement('div');
+        del.className = 'delete-btn';
+        del.textContent = '✕';
+        del.onclick = _ => {
+          if(confirm('Supprimer cette carte ?')){
+            e.count--;
+            if(e.count<=0) delete collection[setId][cid];
+            localStorage.setItem('collection', JSON.stringify(collection));
+            showCollection(currentSetIndex);
+          }
+        };
+        slot.appendChild(del);
+        const badge = document.createElement('span');
+        badge.textContent = 'x'+e.count;
+        slot.appendChild(badge);
+      }
     }
-    .slot {
-      position: relative;
-      width: 100%;
-      padding-top: 125%; /* aspect ratio */
-      border: dashed 2px rgba(255,255,255,.3);
-      border-radius: .5rem;
-      text-align: center;
-      font-size: .8rem;
-      color: rgba(255,255,255,.5);
-    }
-    .slot img {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      width: auto;
-      height: 100%;
-      margin: auto;
-      box-shadow: 0 2px 6px rgba(0,0,0,.5);
-      border-radius: .5rem;
-    }
-    .remove-btn {
-      position: absolute;
-      top: 2px; right: 2px;
-      background: #e33;
-      border: none;
-      color: #fff;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      font-size: .8rem;
-      line-height: 18px;
-    }
+    colArea.appendChild(slot);
+  }
+}
+prevSetBtn.onclick = _ => showCollection(currentSetIndex-1);
+nextSetBtn.onclick = _ => showCollection(currentSetIndex+1);
 
-    /* Footer nav */
-    nav {
-      position: fixed;
-      bottom: 0; left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 1rem;
-      padding: .5rem;
-      background: rgba(0,0,0,.2);
-      border-radius: 1rem;
-    }
-    nav button {
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
+// —— MODAL AGRANDI —— //
+const cardModal = document.getElementById('cardModal');
+const modalImg  = document.getElementById('modalImg');
+document.body.addEventListener('click', e => {
+  if(e.target.tagName==='IMG' && e.target.parentNode.id==='collectionArea'){
+    modalImg.src = e.target.src.replace('/small/','/large/');
+    cardModal.style.display = 'flex';
+  }
+});
+cardModal.onclick = _ => cardModal.style.display = 'none';
 
-  <header>
-    <h1>Mini TCG Pocket</h1>
-    <div id="balance">0,00 €</div>
-  </header>
+// —— TRADING (stub) —— //
+function renderTrading(){
+  document.getElementById('offers').textContent   = 'Chargement…';
+  document.getElementById('myOffers').textContent = 'Aucune carte à vendre.';
+  // ici tu peux programmer fetch vers ton back-end / générer aléa…
+}
+setInterval(_=>{ if(screens.trade.classList.contains('active')) renderTrading() }, 300000);
 
-  <main>
-    <!-- Boosters -->
-    <section id="page-boosters">
-      <h2>Choisis un booster</h2>
-      <button class="nav-arrow" id="prev-set">←</button>
-      <div id="sets-container"></div>
-      <button class="nav-arrow" id="next-set">→</button>
-    </section>
-
-    <!-- Collection -->
-    <section id="page-collection">
-      <h2>Ta collection</h2>
-      <div id="collection-container"></div>
-    </section>
-
-    <!-- Trading -->
-    <section id="page-trading">
-      <h2>Trading</h2>
-      <p>Trading à venir…</p>
-    </section>
-  </main>
-
-  <nav>
-    <button id="nav-boosters">🏠</button>
-    <button id="nav-collection">📒</button>
-    <button id="nav-trading">💱</button>
-  </nav>
-
-  <script src="script.js"></script>
-</body>
-</html>
+// —— INITIALISATION —— //
+window.addEventListener('load', async() => {
+  // recup collec
+  loadCollection();
+  // load sets & afficher
+  await loadSets();
+});
