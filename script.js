@@ -1,27 +1,22 @@
 // script.js
 
-// —— CONSTANTES ET ÉTAT GLOBAL —— //
-const API_BASE = 'https://api.pokemontcg.io/v2';
-let wallet        = parseFloat(localStorage.getItem('wallet') || '100');
-let collection    = JSON.parse(localStorage.getItem('collection')    || '{}');
-let cardData      = JSON.parse(localStorage.getItem('cardData')      || '{}');
-let openedSets    = JSON.parse(localStorage.getItem('openedSets')    || '[]');
-let allSets       = [];
-let currentSetIdx = -1;
+// —— CONSTANTES & ÉTAT GLOBAL —— //
+const API_BASE       = 'https://api.pokemontcg.io/v2';
+let wallet           = parseFloat(localStorage.getItem('wallet') || '100');
+let collection       = JSON.parse(localStorage.getItem('collection')    || '{}');
+let cardData         = JSON.parse(localStorage.getItem('cardData')      || '{}');
+let openedSets       = JSON.parse(localStorage.getItem('openedSets')    || '[]');
+let allSets          = [];
+let currentSetIdx    = -1;
 
-// —— UTILS —— //
-function saveCollection() {
+// —— UTILITAIRES —— //
+function saveAll() {
+  localStorage.setItem('wallet',    wallet.toFixed(2));
   localStorage.setItem('collection', JSON.stringify(collection));
-}
-function saveCardData() {
-  localStorage.setItem('cardData', JSON.stringify(cardData));
-}
-function saveOpenedSets() {
+  localStorage.setItem('cardData',   JSON.stringify(cardData));
   localStorage.setItem('openedSets', JSON.stringify(openedSets));
 }
-function updateWallet(amount=0) {
-  wallet = Math.max(0, wallet + amount);
-  localStorage.setItem('wallet', wallet.toFixed(2));
+function updateWalletDisplay() {
   document.getElementById('walletHeader').innerText = wallet.toFixed(2) + ' €';
 }
 function shuffle(arr) {
@@ -33,11 +28,12 @@ function shuffle(arr) {
   return a;
 }
 
-// —— SWITCH D’ÉCRANS —— //
+// —— SWITCH ÉCRANS —— //
 const screens = ['screen1','screen2','screen3','screen4'];
-function showScreen(num) {
-  screens.forEach((id, i) => {
-    document.getElementById(id).classList.toggle('active', i + 1 === num);
+function showScreen(n) {
+  screens.forEach((id, idx) => {
+    document.getElementById(id)
+      .classList.toggle('active', idx + 1 === n);
   });
 }
 
@@ -46,7 +42,7 @@ async function loadSets() {
   const container = document.getElementById('setsContainer');
   container.innerText = 'Chargement…';
   try {
-    const res = await fetch(`${API_BASE}/sets?pageSize=250`, { cache: 'no-store' });
+    const res  = await fetch(`${API_BASE}/sets?pageSize=250`, { cache: 'no-store' });
     const { data } = await res.json();
     allSets = data;
     container.innerHTML = '';
@@ -55,7 +51,7 @@ async function loadSets() {
       btn.className = 'set-btn';
       btn.style.backgroundImage = `url(${set.images.logo})`;
       btn.title = set.name;
-      // badge prix
+      // badge 5€
       const priceTag = document.createElement('div');
       priceTag.className = 'set-price';
       priceTag.innerText = '5 €';
@@ -63,38 +59,38 @@ async function loadSets() {
       btn.onclick = () => chooseSet(set);
       container.appendChild(btn);
     });
-  } catch (e) {
+  } catch (err) {
+    console.error(err);
     container.innerText = 'Erreur de chargement';
-    console.error(e);
   }
-  // flèches scroll
+  // flèches
   document.getElementById('prevBtn').onclick = () =>
     container.scrollBy({ left: -140, behavior: 'smooth' });
   document.getElementById('nextBtn').onclick = () =>
     container.scrollBy({ left:  140, behavior: 'smooth' });
 }
 
-// —— CHOIX + OUVERTURE DE BOOSTER —— //
+// —— OUVERTURE DE BOOSTER —— //
 async function chooseSet(set) {
   if (wallet < 5) {
     return alert('Portefeuille insuffisant (5 € requis).');
   }
-  // débit
-  updateWallet(-5);
+  wallet -= 5;
+  saveAll();
+  updateWalletDisplay();
 
-  // animation d’ouverture
+  // passe à l’écran 2
   showScreen(2);
   document.getElementById('currentSetName').innerText = set.name;
-  const openingArea = document.getElementById('openingArea');
-  openingArea.innerHTML = '';
 
-  // récup cartes du set
-  const res = await fetch(
+  // fetch des cartes du set
+  const res   = await fetch(
     `${API_BASE}/cards?q=set.id:${set.id}&pageSize=250`,
     { cache: 'no-store' }
   );
-  const cards = (await res.json()).data;
-  // mémorise set ouvert
+  const { data: cards } = await res.json();
+
+  // enregistre le set dans openedSets
   let idx = openedSets.findIndex(s => s.id === set.id);
   const ids = cards.map(c => c.id);
   if (idx === -1) {
@@ -104,35 +100,34 @@ async function chooseSet(set) {
     openedSets[idx].ids = ids;
   }
   currentSetIdx = idx;
-  saveOpenedSets();
+  saveAll();
 
-  // tire 5 cartes
-  const pick = shuffle(cards).slice(0,5);
+  // anim + distribution
+  const openingArea = document.getElementById('openingArea');
+  openingArea.innerHTML = '';
+  const pick = shuffle(cards).slice(0, 5);
   pick.forEach((c, i) => {
-    // thumb
     const thumb = document.createElement('div');
     thumb.className = 'card-thumb';
     thumb.style.animationDelay = `${i * 0.2}s`;
     openingArea.appendChild(thumb);
     setTimeout(() => {
       thumb.style.backgroundImage = `url(${c.images.small})`;
-      // stock données
+      // stock image & ajoute à la collection
       cardData[c.id] = c.images.small;
-      saveCardData();
-      // ajoute à la collection
       collection[c.id] = (collection[c.id] || 0) + 1;
-      saveCollection();
+      saveAll();
     }, i * 400);
   });
 
-  // après animation, passe au classeur
+  // après l’animation, affiche le classeur
   setTimeout(() => {
     initCollection();
     showScreen(3);
   }, 5 * 400 + 200);
 }
 
-// —— GÉNÉRATION + AFFICHAGE CLASSEUR —— //
+// —— INIT & AFFICHAGE CLASSEUR —— //
 function initCollection() {
   if (openedSets.length === 0) {
     currentSetIdx = -1;
@@ -146,17 +141,14 @@ function updateCollectionNav() {
   const title = document.getElementById('collectionTitle');
   document.getElementById('prevSet').disabled = currentSetIdx <= 0;
   document.getElementById('nextSet').disabled = currentSetIdx >= openedSets.length - 1;
-  if (currentSetIdx < 0) {
-    title.innerText = '— Aucun set —';
-  } else {
-    title.innerText = openedSets[currentSetIdx].name;
-  }
+  title.innerText = currentSetIdx < 0
+    ? '— Aucun set —'
+    : openedSets[currentSetIdx].name;
 }
 function renderCollection() {
   const area = document.getElementById('collectionArea');
   area.innerHTML = '';
   if (currentSetIdx < 0) return;
-
   const { ids } = openedSets[currentSetIdx];
   ids.forEach((cardId, idx) => {
     const count = collection[cardId] || 0;
@@ -166,7 +158,7 @@ function renderCollection() {
       cell.innerHTML = `<div class="placeholder">${String(idx+1).padStart(3,'0')}</div>`;
     } else {
       cell.innerHTML = `
-        <img src="${cardData[cardId]}" data-id="${cardId}">
+        <img src="${cardData[cardId]}" data-id="${cardId}"/>
         <span>x${count}</span>
         <button class="delete-btn" data-id="${cardId}">×</button>
       `;
@@ -186,7 +178,7 @@ function attachCollectionHandlers() {
     btn.onclick = () => {
       const id = btn.dataset.id;
       if (--collection[id] <= 0) delete collection[id];
-      saveCollection();
+      saveAll();
       renderCollection();
     };
   });
@@ -207,11 +199,12 @@ document.getElementById('cardModal').onclick = () => {
   document.getElementById('cardModal').style.display = 'none';
 };
 
-// —— SECTION TRADING —— //
+// —— TRADING —— //
 function getPrice(rarity='') {
-  const r = (rarity||'').toLowerCase();
-  if (r.includes('rare'))   return 10;
-  if (r.includes('uncommon')) return 5;
+  const r = rarity.toLowerCase();
+  if (r.includes('shiny') || r.includes('special')) return 20;
+  if (r.includes('rare'))                  return 10;
+  if (r.includes('uncommon'))              return 5;
   return 2;
 }
 let offers = [];
@@ -220,29 +213,30 @@ function genOffers() {
   offers = [];
   for (let i = 0; i < 5; i++) {
     const id = ids[Math.floor(Math.random() * ids.length)];
-    const price = getPrice((cardData[id] && cardData[id].rarity) || '');
+    const price = getPrice(cardData[id] && cardData[id].rarity);
     offers.push({ id, price });
   }
 }
 function renderOffers() {
-  const c = document.getElementById('offers');
-  c.innerHTML = '';
+  const container = document.getElementById('offers');
+  container.innerHTML = '';
   offers.forEach(o => {
     const disabled = wallet < o.price ? 'disabled' : '';
-    c.insertAdjacentHTML('beforeend', `
+    container.insertAdjacentHTML('beforeend', `
       <div class="trade-card">
-        <img src="${cardData[o.id]}">
+        <img src="${cardData[o.id]}"/>
         <div>${o.price} €</div>
         <button ${disabled} data-id="${o.id}" data-price="${o.price}">Acheter</button>
-      </div>`);
+      </div>
+    `);
   });
-  c.querySelectorAll('.trade-card button').forEach(b => {
-    b.onclick = () => {
-      const id = b.dataset.id, p = parseFloat(b.dataset.price);
+  container.querySelectorAll('.trade-card button').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id, p = parseFloat(btn.dataset.price);
       wallet -= p;
-      updateWallet(0);
       collection[id] = (collection[id] || 0) + 1;
-      saveCollection();
+      saveAll();
+      updateWalletDisplay();
       initCollection();
       genOffers();
       renderOffers();
@@ -250,62 +244,56 @@ function renderOffers() {
   });
 }
 function renderMyOffers() {
-  const c = document.getElementById('myOffers');
-  c.innerHTML = '';
+  const container = document.getElementById('myOffers');
+  container.innerHTML = '';
   const mine = Object.keys(collection).filter(id => collection[id] > 0);
   if (mine.length === 0) {
-    c.textContent = 'Aucune carte à vendre.';
+    container.textContent = 'Aucune carte à vendre.';
     return;
   }
   mine.forEach(id => {
-    const price = getPrice((cardData[id] && cardData[id].rarity) || '');
-    c.insertAdjacentHTML('beforeend', `
+    const price = getPrice(cardData[id] && cardData[id].rarity);
+    container.insertAdjacentHTML('beforeend', `
       <div class="trade-card">
-        <img src="${cardData[id]}">
+        <img src="${cardData[id]}"/>
         <div>${price} €</div>
         <button data-id="${id}" data-price="${price}">Vendre</button>
-      </div>`);
+      </div>
+    `);
   });
-  c.querySelectorAll('#myOffers button').forEach(b => {
-    b.onclick = () => {
-      const id = b.dataset.id, p = parseFloat(b.dataset.price);
+  container.querySelectorAll('#myOffers button').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id, p = parseFloat(btn.dataset.price);
       wallet += p;
-      updateWallet(0);
       if (--collection[id] <= 0) delete collection[id];
-      saveCollection();
+      saveAll();
+      updateWalletDisplay();
       initCollection();
       renderMyOffers();
     };
   });
 }
 
-// —— NAVBAR BASSE —— //
-document.getElementById('goHome').onclick = () => showScreen(1);
-document.getElementById('goCollection').onclick = () => {
-  if (openedSets.length === 0) return alert('Ouvre d’abord un booster !');
-  initCollection();
-  showScreen(3);
-};
-document.getElementById('goTrade').onclick = () => {
-  genOffers();
-  renderOffers();
-  renderMyOffers();
-  showScreen(4);
-  updateWallet(0);
+// —— NAVBAR BAS —— //
+document.getElementById('goHome').onclick = ()         => showScreen(1);
+document.getElementById('goCollection').onclick = ()   => { initCollection(); showScreen(3); };
+document.getElementById('goTrade').onclick = ()        => {
+  genOffers(); renderOffers(); renderMyOffers();
+  showScreen(4); updateWalletDisplay();
 };
 
 // —— DÉMARRAGE —— //
-document.addEventListener('DOMContentLoaded', () => {
-  updateWallet(0);
-  loadSets().then(() => {
-    if (openedSets.length) {
-      currentSetIdx = 0;
-      initCollection();
+document.addEventListener('DOMContentLoaded', async () => {
+  updateWalletDisplay();
+  await loadSets();
+  if (openedSets.length) {
+    currentSetIdx = 0;
+    initCollection();
+  }
+  // rafraîchissement auto des offres toutes les 5 min
+  setInterval(() => {
+    if (document.getElementById('screen4').classList.contains('active')) {
+      genOffers(); renderOffers();
     }
-    setInterval(() => {
-      if (screens[3] && document.getElementById('screen4').classList.contains('active')) {
-        genOffers(); renderOffers();
-      }
-    }, 5 * 60 * 1000);
-  });
+  }, 5 * 60 * 1000);
 });
