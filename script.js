@@ -1,154 +1,143 @@
-// --- CONFIGURATION ---
-const API_KEY = ''; // vide, tu utilises l'API publique
-const BASE_URL = 'https://api.pokemontcg.io/v2';
-const STARTING_WALLET = 100;
+// == Mini TCG Pocket ==
 
-// --- STATE ---
+// Points clés:
+// - On stocke l’état courant (argent, sets, collection) dans localStorage.
+// - On affiche/masque les 3 pages : boosters, collection, trading.
+// - On charge les logos et données depuis le dossier assets/sets et assets/cards.
+
+// Données de démonstration : liste des sets
+const sets = [
+  { id: 'base',   name: 'Base',    logo: 'sets/base.png', size: 200 },
+  { id: 'jungle', name: 'Jungle',  logo: 'sets/jungle.png', size: 200 },
+  { id: 'fossil', name: 'Fossil',  logo: 'sets/fossil.png', size: 200 },
+  // … ajoute les autres sets ici …
+];
+
 let currentSetIndex = 0;
-let sets = [];
-let collection = JSON.parse(localStorage.getItem('collection')||'{}');
-let wallet = parseFloat(localStorage.getItem('wallet')||STARTING_WALLET);
+let balance = parseFloat(localStorage.getItem('balance') || '100');
+let collection = JSON.parse(localStorage.getItem('collection') || '{}');
 
-// --- DOM ---
-const el = {
-  wallet: document.getElementById('wallet'),
-  pageBoosters: document.getElementById('page-boosters'),
-  pageCollection: document.getElementById('page-collection'),
-  pageTrading: document.getElementById('page-trading'),
-  setsContainer: document.getElementById('sets-container'),
-  collectionContainer: document.getElementById('collection-container'),
-  tradingContainer: document.getElementById('trading-container'),
-  btnPrevSet: document.getElementById('prev-set'),
-  btnNextSet: document.getElementById('next-set'),
-  navHome: document.getElementById('nav-home'),
-  navCollection: document.getElementById('nav-collection'),
-  navTrading: document.getElementById('nav-trading'),
-};
+// Éléments du DOM
+const navBoosters   = document.getElementById('nav-boosters');
+const navCollection = document.getElementById('nav-collection');
+const navTrading    = document.getElementById('nav-trading');
 
-// --- UTIL ---
-function saveState(){
+const pageBoosters   = document.getElementById('page-boosters');
+const pageCollection = document.getElementById('page-collection');
+const pageTrading    = document.getElementById('page-trading');
+
+const balanceEl    = document.getElementById('balance');
+const setsContainer       = document.getElementById('sets-container');
+const prevSetBtn          = document.getElementById('prev-set');
+const nextSetBtn          = document.getElementById('next-set');
+const collectionContainer = document.getElementById('collection-container');
+
+// Affiche le solde
+function updateBalance() {
+  balanceEl.textContent = balance.toFixed(2) + ' €';
+  localStorage.setItem('balance', balance);
+}
+
+// Navigation entre pages
+function showPage(page) {
+  pageBoosters.style.display   = (page === 'boosters')   ? '' : 'none';
+  pageCollection.style.display = (page === 'collection') ? '' : 'none';
+  pageTrading.style.display    = (page === 'trading')    ? '' : 'none';
+}
+
+navBoosters.addEventListener('click', () => showPage('boosters'));
+navCollection.addEventListener('click', () => { loadCollection(); showPage('collection'); });
+navTrading.addEventListener('click', () => showPage('trading'));
+
+// --- Page Boosters ---
+
+function renderSets() {
+  setsContainer.innerHTML = '';
+  // On scroll horizontale automatique ou par click fleches
+  const set = sets[currentSetIndex];
+  const img = document.createElement('img');
+  img.src = set.logo;
+  img.alt = set.name;
+  img.width = set.size;
+  img.style.cursor = 'pointer';
+  img.addEventListener('click', () => openBooster(set));
+  setsContainer.appendChild(img);
+  // On pourrait afficher aussi set.name entre les fleches…
+}
+
+// Navigation sets
+prevSetBtn.addEventListener('click', () => {
+  currentSetIndex = (currentSetIndex - 1 + sets.length) % sets.length;
+  renderSets();
+});
+nextSetBtn.addEventListener('click', () => {
+  currentSetIndex = (currentSetIndex + 1) % sets.length;
+  renderSets();
+});
+
+// Achat et ouverture d’un booster
+function openBooster(set) {
+  const price = 5;
+  if (balance < price) {
+    return alert("Solde insuffisant !");
+  }
+  balance -= price;
+  updateBalance();
+
+  // Simule un tirage aléatoire de 5 cartes dans assets/cards/[set.id]/
+  // Ici on affiche directement dans la collection
+  for (let i = 0; i < 5; i++) {
+    const rnd = String(Math.floor(Math.random() * 60) + 1).padStart(3, '0');
+    const key = `${set.id}-${rnd}`;
+    collection[key] = (collection[key] || 0) + 1;
+  }
   localStorage.setItem('collection', JSON.stringify(collection));
-  localStorage.setItem('wallet', wallet);
-}
-function updateWallet(){
-  el.wallet.textContent = wallet.toFixed(2)+' €';
-  saveState();
+  alert(`Booster ${set.name} ouvert !`);
 }
 
-// --- RENDER NAV ---
-function showPage(page){
-  el.pageBoosters.classList.add('hidden');
-  el.pageCollection.classList.add('hidden');
-  el.pageTrading.classList.add('hidden');
-  el.navHome.classList.remove('active');
-  el.navCollection.classList.remove('active');
-  el.navTrading.classList.remove('active');
+// --- Page Collection ---
 
-  if(page==='boosters'){
-    el.pageBoosters.classList.remove('hidden');
-    el.navHome.classList.add('active');
+function loadCollection() {
+  collectionContainer.innerHTML = '';
+  // On parcourt tous les slots (001 à 100)…
+  for (let num = 1; num <= 100; num++) {
+    const slot = document.createElement('div');
+    slot.className = 'card-slot';
+    slot.textContent = String(num).padStart(3, '0');
+    collectionContainer.appendChild(slot);
   }
-  if(page==='collection'){
-    el.pageCollection.classList.remove('hidden');
-    el.navCollection.classList.add('active');
-    renderCollection();
-  }
-  if(page==='trading'){
-    el.pageTrading.classList.remove('hidden');
-    el.navTrading.classList.add('active');
-    renderTrading();
-  }
-}
-
-// --- RENDER BOOSTERS ---
-async function fetchSets(){
-  const resp = await fetch(`${BASE_URL}/sets`);
-  const data = await resp.json();
-  sets = data.data;
-  renderSets();
-}
-function renderSets(){
-  el.setsContainer.innerHTML = '';
-  sets.forEach((s,i)=>{
+  // Puis on ajoute par-dessus les cartes qu’on possède
+  Object.entries(collection).forEach(([key, qty]) => {
+    const [setId, num] = key.split('-');
     const img = document.createElement('img');
-    img.src = s.images.logo;
-    img.style.width = '100px';
-    img.style.margin = '0 .5rem';
+    img.src = `assets/cards/${setId}/${num}.png`;
+    img.alt = key;
+    img.width = 100;
+    img.style.position = 'absolute';
     img.style.cursor = 'pointer';
-    if(i===currentSetIndex) img.style.border = '2px solid #fff';
-    img.addEventListener('click',()=>openBooster(i));
-    el.setsContainer.append(img);
-  });
-}
-function openBooster(idx){
-  const set = sets[idx];
-  if(wallet < 5) return alert("Pas assez d'argent");
-  wallet -= 5; updateWallet();
-  fetch(`${BASE_URL}/cards?q=set.id:${set.id}&pageSize=5`)
-    .then(r=>r.json())
-    .then(data=>{
-      data.data.forEach(card=>{
-        collection[card.id] = (collection[card.id]||0)+1;
-      });
-      saveState();
-      showPage('collection');
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '✖';
+    removeBtn.style.position = 'absolute';
+    removeBtn.addEventListener('click', () => {
+      delete collection[key];
+      localStorage.setItem('collection', JSON.stringify(collection));
+      loadCollection();
     });
-}
-el.btnPrevSet.onclick = ()=>{
-  currentSetIndex = (currentSetIndex-1+sets.length)%sets.length;
-  renderSets();
-};
-el.btnNextSet.onclick = ()=>{
-  currentSetIndex = (currentSetIndex+1)%sets.length;
-  renderSets();
-};
 
-// --- RENDER COLLECTION ---
-function renderCollection(){
-  el.collectionContainer.innerHTML = '';
-  // on affiche par set (filtrer collection par set si tu veux)
-  Object.entries(collection).forEach(([id,count])=>{
-    const cardEl = document.createElement('div');
-    cardEl.style.position='relative';
-    const img = document.createElement('img');
-    img.src = `assets/cards/${id}.png`;
-    img.style.width='120px';
-    cardEl.append(img);
-    const countEl = document.createElement('div');
-    countEl.textContent = 'x'+count;
-    countEl.style.position='absolute';
-    countEl.style.bottom='4px';
-    countEl.style.right='4px';
-    countEl.style.background='lightgreen';
-    countEl.style.borderRadius='50%';
-    countEl.style.padding='2px 6px';
-    cardEl.append(countEl);
-    const del = document.createElement('button');
-    del.textContent='✕';
-    del.style.position='absolute';
-    del.style.top='4px';
-    del.style.right='4px';
-    del.onclick=()=>{
-      delete collection[id];
-      renderCollection();
-      saveState();
-    };
-    cardEl.append(del);
-    el.collectionContainer.append(cardEl);
+    // On devrait calculer la position pixel précise du slot,
+    // mais pour l’exemple on met tout en flow inline…
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'inline-block';
+    wrapper.style.position = 'relative';
+    wrapper.style.margin = '0.5rem';
+    wrapper.append(img, removeBtn);
+    collectionContainer.appendChild(wrapper);
   });
 }
 
-// --- RENDER TRADING (placeholder) ---
-function renderTrading(){
-  el.tradingContainer.innerHTML = '<p>Trading à venir…</p>';
-}
+// --- Initialisation ---
 
-// --- BIND NAV ---
-el.navHome.onclick       = ()=>showPage('boosters');
-el.navCollection.onclick = ()=>showPage('collection');
-el.navTrading.onclick    = ()=>showPage('trading');
-
-// --- INIT ---
-updateWallet();
+updateBalance();
+renderSets();
 showPage('boosters');
-fetchSets();

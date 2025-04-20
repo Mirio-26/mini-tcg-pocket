@@ -1,70 +1,78 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <!-- Force tous les chemins relatifs dans ce dossier -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- IMPORTANT : tous les chemins relatifs seront résolus depuis ce dossier -->
   <base href="./">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Mini TCG Pocket</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/card_back.png" />
   <style>
-    /* Minimal reset + dégradé + layout flex */
-    body, html { margin:0; padding:0; height:100%; }
-    body { font-family:sans-serif; display:flex; flex-direction:column; }
-    header { background: linear-gradient(135deg,#6d3df9,#4a00e0); color:#fff;
-             padding:1rem; display:flex; justify-content:space-between; align-items:center; }
-    main { flex:1; position:relative; overflow:hidden; }
-    footer { height:60px; background:rgba(255,255,255,0.2);
-             display:flex; justify-content:space-around; align-items:center; }
-    .hidden { display:none; }
-    .nav-btn { width:40px; height:40px; opacity:0.7; cursor:pointer; }
-    .nav-btn.active { opacity:1; }
-    /* Màj après pour tes cartes, etc. */
+    /* Votre CSS embarqué ou importé ici */
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #4c2b7f, #a34bea);
+      color: #fff;
+      overflow-x: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      background: #673ab7;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    #balance {
+      font-weight: bold;
+    }
+    main {
+      padding: 1rem;
+    }
+    /*… votre mise en page …*/
   </style>
 </head>
 <body>
   <header>
     <h1>Mini TCG Pocket</h1>
-    <div id="wallet">100 €</div>
+    <div id="balance">0,00 €</div>
   </header>
 
   <main>
-    <!-- Page Choix Booster -->
-    <section id="page-boosters">
+    <section id="page-boosters" style="display: none;">
       <h2>Choisis un booster</h2>
-      <button id="prev-set" class="nav-btn">&larr;</button>
-      <div id="sets-container" style="display:flex;overflow-x:auto;"></div>
-      <button id="next-set" class="nav-btn">&rarr;</button>
+      <button id="prev-set">←</button>
+      <div id="sets-container"></div>
+      <button id="next-set">→</button>
     </section>
 
-    <!-- Page Classeur -->
-    <section id="page-collection" class="hidden">
+    <section id="page-collection" style="display: none;">
       <h2>Ta collection</h2>
-      <div id="collection-container" style="display:flex;flex-wrap:wrap;"></div>
+      <div id="collection-container"></div>
     </section>
 
-    <!-- Page Trading -->
-    <section id="page-trading" class="hidden">
+    <section id="page-trading" style="display: none;">
       <h2>Trading</h2>
-      <div id="trading-container"></div>
+      <p>Trading à venir…</p>
     </section>
   </main>
 
-  <footer>
-    <img id="nav-home" src="assets/ic_home.svg" class="nav-btn active">
-    <img id="nav-collection" src="assets/ic_collection.svg" class="nav-btn">
-    <img id="nav-trading" src="assets/ic_trading.svg" class="nav-btn">
-  </footer>
+  <!-- Les icônes de navigation -->
+  <nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);display:flex;gap:1rem;padding:0.5rem;background:rgba(0,0,0,0.2);border-radius:1rem;">
+    <button id="nav-boosters">🏠</button>
+    <button id="nav-collection">📒</button>
+    <button id="nav-trading">💱</button>
+  </nav>
 
-  <script src="script.js" defer></script>
-  <script>
-    // Enreg. SW relatif
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-               .register('sw.js')
-               .then(()=>console.log('SW registered'))
-               .catch(console.error);
-    }
-  </script>
+  <!-- Votre script principal -->
+  <script src="script.js"></script>
+  <!-- Service worker, si besoin -->
+  <script src="sw.js"></script>
 </body>
 </html>
