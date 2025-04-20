@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Mini TCG Pocket</title>
-  <!-- Désactivation du cache -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-  <meta http-equiv="Pragma"       content="no-cache"/>
-  <meta http-equiv="Expires"      content="0"/>
+  <!-- Zoom initial ×2 sur Mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=2, maximum-scale=2, user-scalable=no"/>
+
   <style>
     /* ===== GLOBAL ===== */
     body {
@@ -38,7 +37,7 @@
     .screen {
       display:none;
       padding:16px;
-      padding-bottom:160px; /* bottom-nav doublée (112px) + marge */
+      padding-bottom:160px; /* bottom-nav doublée à 112px + marge */
       height:calc(100% - 56px - 112px);
       overflow-y:auto;
     }
@@ -190,7 +189,6 @@
   </style>
 </head>
 <body>
-
   <div class="header">
     <div style="width:32px"></div>
     <div>Mini TCG Pocket</div>
