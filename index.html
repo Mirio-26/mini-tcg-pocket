@@ -3,76 +3,145 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- IMPORTANT : tous les chemins relatifs seront résolus depuis ce dossier -->
   <base href="./">
 
   <title>Mini TCG Pocket</title>
-  <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="assets/card_back.png" />
   <style>
-    /* Votre CSS embarqué ou importé ici */
     body {
       margin: 0;
       font-family: sans-serif;
-      background: linear-gradient(135deg, #4c2b7f, #a34bea);
+      background: linear-gradient(135deg,#4c2b7f,#a34bea);
       color: #fff;
       overflow-x: hidden;
     }
     header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      padding: 0.5rem 1rem;
+      align-items: center;
+      padding: .5rem 1rem;
       background: #673ab7;
     }
-    header h1 {
-      margin: 0;
-      font-size: 1.25rem;
+    header h1 { margin: 0; font-size: 1.2rem; }
+    #balance { font-weight: bold; }
+
+    main { padding: 1rem; }
+    section { display: none; }
+
+    /* ---- Boosters ---- */
+    #sets-container {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding: .5rem 0;
     }
-    #balance {
-      font-weight: bold;
+    #sets-container img {
+      cursor: pointer;
+      border-radius: .5rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.3);
+      flex-shrink: 0;
+      height: 100px;
     }
-    main {
-      padding: 1rem;
+    .nav-arrow {
+      background: rgba(0,0,0,.3);
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      padding: .5rem;
+      cursor: pointer;
+      border-radius: .3rem;
     }
-    /*… votre mise en page …*/
+
+    /* ---- Collection ---- */
+    #collection-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill,minmax(80px,1fr));
+      gap: .75rem;
+    }
+    .slot {
+      position: relative;
+      width: 100%;
+      padding-top: 125%; /* ratio approx carte */
+      border: dashed 2px rgba(255,255,255,.3);
+      border-radius: .5rem;
+      text-align: center;
+      font-size: .8rem;
+      color: rgba(255,255,255,.5);
+    }
+    .slot img {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: auto;
+      height: 100%;
+      margin: auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,.5);
+      border-radius: .5rem;
+    }
+    .remove-btn {
+      position: absolute;
+      top: 2px; right: 2px;
+      background: #e33;
+      border: none; color: #fff;
+      border-radius: 50%;
+      width: 20px; height: 20px;
+      cursor: pointer;
+      font-size: .8rem;
+      line-height: 18px;
+    }
+
+    /* ---- Navigation footer ---- */
+    nav {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 1rem;
+      padding: .5rem;
+      background: rgba(0,0,0,.2);
+      border-radius: 1rem;
+    }
+    nav button {
+      background: none; border: none;
+      color: #fff; font-size: 1.5rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+
   <header>
     <h1>Mini TCG Pocket</h1>
     <div id="balance">0,00 €</div>
   </header>
 
   <main>
-    <section id="page-boosters" style="display: none;">
+    <!-- Page Boosters -->
+    <section id="page-boosters">
       <h2>Choisis un booster</h2>
-      <button id="prev-set">←</button>
+      <button class="nav-arrow" id="prev-set">←</button>
       <div id="sets-container"></div>
-      <button id="next-set">→</button>
+      <button class="nav-arrow" id="next-set">→</button>
     </section>
 
-    <section id="page-collection" style="display: none;">
+    <!-- Page Collection -->
+    <section id="page-collection">
       <h2>Ta collection</h2>
       <div id="collection-container"></div>
     </section>
 
-    <section id="page-trading" style="display: none;">
+    <!-- Page Trading -->
+    <section id="page-trading">
       <h2>Trading</h2>
       <p>Trading à venir…</p>
     </section>
   </main>
 
-  <!-- Les icônes de navigation -->
-  <nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);display:flex;gap:1rem;padding:0.5rem;background:rgba(0,0,0,0.2);border-radius:1rem;">
+  <!-- Barre de nav -->
+  <nav>
     <button id="nav-boosters">🏠</button>
     <button id="nav-collection">📒</button>
     <button id="nav-trading">💱</button>
   </nav>
 
-  <!-- Votre script principal -->
   <script src="script.js"></script>
-  <!-- Service worker, si besoin -->
-  <script src="sw.js"></script>
 </body>
 </html>
