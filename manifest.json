@@ -1,20 +1,20 @@
 {
-  "name":             "Mini TCG Pocket",
-  "short_name":       "TCG Pocket",
-  "start_url":        ".",
-  "display":          "standalone",
-  "background_color": "#3949ab",
-  "theme_color":      "#7b1fa2",
+  "name": "Mini TCG Pocket",
+  "short_name": "TCG Pocket",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#4a00e0",
+  "theme_color": "#6d3df9",
   "icons": [
     {
-      "src":   "/assets/icon-192.png",
+      "src": "assets/icon-192.png",
       "sizes": "192x192",
-      "type":  "image/png"
+      "type": "image/png"
     },
     {
-      "src":   "/assets/icon-512.png",
+      "src": "assets/icon-512.png",
       "sizes": "512x512",
-      "type":  "image/png"
+      "type": "image/png"
     }
   ]
 }
